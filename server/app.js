@@ -1,5 +1,5 @@
 import express from 'express'
-import { client } from './db.js'
+import { sql } from './db.js'
 
 const app = express()
 
@@ -12,35 +12,30 @@ const formatPrice = (cents) =>
   })
 
 app.get('/api/stats', async (_req, res) => {
-  const { rows } = await client.execute('SELECT label, value, suffix FROM stats')
+  const rows = await sql`SELECT label, value, suffix FROM stats`
   res.json(rows)
 })
 
 app.get('/api/products', async (_req, res) => {
-  const { rows } = await client.execute('SELECT * FROM products ORDER BY downloads DESC')
+  const rows = await sql`SELECT * FROM products ORDER BY downloads DESC`
   res.json(rows.map((p) => ({ ...p, price: formatPrice(p.price_cents) })))
 })
 
 app.get('/api/products/:slug', async (req, res) => {
-  const { rows } = await client.execute({
-    sql: 'SELECT * FROM products WHERE slug = ?',
-    args: [req.params.slug],
-  })
+  const rows = await sql`SELECT * FROM products WHERE slug = ${req.params.slug}`
   if (!rows.length) return res.status(404).json({ error: 'not found' })
   res.json({ ...rows[0], price: formatPrice(rows[0].price_cents) })
 })
 
 app.get('/api/plans', async (_req, res) => {
-  const { rows: plans } = await client.execute('SELECT * FROM plans ORDER BY price_cents ASC')
+  const plans = await sql`SELECT * FROM plans ORDER BY price_cents ASC`
   const withProducts = await Promise.all(
     plans.map(async (plan) => {
-      const { rows: items } = await client.execute({
-        sql: `SELECT p.* FROM products p
-              JOIN plan_products pp ON pp.product_id = p.id
-              WHERE pp.plan_id = ?
-              ORDER BY p.name`,
-        args: [plan.id],
-      })
+      const items = await sql`
+        SELECT p.* FROM products p
+        JOIN plan_products pp ON pp.product_id = p.id
+        WHERE pp.plan_id = ${plan.id}
+        ORDER BY p.name`
       return {
         ...plan,
         price: formatPrice(plan.price_cents),
@@ -52,12 +47,12 @@ app.get('/api/plans', async (_req, res) => {
 })
 
 app.get('/api/market', async (_req, res) => {
-  const { rows } = await client.execute('SELECT * FROM market_items ORDER BY created_at DESC')
+  const rows = await sql`SELECT * FROM market_items ORDER BY created_at DESC`
   res.json(rows.map((m) => ({ ...m, price: formatPrice(m.price_cents) })))
 })
 
 app.get('/api/team', async (_req, res) => {
-  const { rows } = await client.execute('SELECT * FROM team_members ORDER BY id')
+  const rows = await sql`SELECT * FROM team_members ORDER BY id`
   res.json(rows)
 })
 
@@ -78,7 +73,7 @@ app.post('/api/utils/generate-text', async (req, res) => {
 })
 
 app.get('/api/health', async (_req, res) => {
-  await client.execute('SELECT 1')
+  await sql`SELECT 1`
   res.json({ ok: true })
 })
 

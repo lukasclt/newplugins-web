@@ -10,11 +10,12 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "db:reset": "rm -f server/turso.db server/turso.db-wal server/turso.db-shm"
+    "db:reset": "node --env-file=.env server/reset-db.mjs"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.4",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "postgres": "^3.4.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1"
